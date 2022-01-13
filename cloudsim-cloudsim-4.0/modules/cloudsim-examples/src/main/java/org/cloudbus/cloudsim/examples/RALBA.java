@@ -100,15 +100,40 @@ public class RALBA {
 	}
 	
 	private static List<Vm> createExperimentVM(int userId) {
-		List<Vm> vms = createVMAdvance(userId, 7, 100);
-		vms.addAll(createVMAdvance(userId, 7, 500));
-		vms.addAll(createVMAdvance(userId, 6, 750));
-		vms.addAll(createVMAdvance(userId, 6, 1000));
-		vms.addAll(createVMAdvance(userId, 6, 1250));
-		vms.addAll(createVMAdvance(userId, 6, 1500));
-		vms.addAll(createVMAdvance(userId, 6, 1750));
-		vms.addAll(createVMAdvance(userId, 6, 4000));
-		return vms;
+
+		//Creates a container to store VMs. This list is passed to the broker later
+		LinkedList<Vm> list = new LinkedList<Vm>();
+		
+		LinkedList<Integer> vmc = new LinkedList<>();
+		int ll[] = {7, 6,6,6,6,6,6};
+		int lz[] = {500,750,1000,1250,1500,1750,4000};
+		
+		for(int i = 0; i < ll.length; i++)
+		{
+			for(int j = 0; j < ll[i]; j++) {
+				vmc.add(lz[i]);
+			}
+		}
+
+		//VM Parameters
+		long size = 10000; //image size (MB)
+		int ram = 512; //vm memory (MB)
+		long bw = 1000;
+		int pesNumber = 1; //number of cpus
+		String vmm = "Xen"; //VMM name
+
+		//create VMs
+		Vm[] vm = new Vm[vmc.size()];
+
+		for(int i=0;i<vmc.size();i++){
+			vm[i] = new Vm(i, userId, vmc.get(i), pesNumber, ram, bw, size, vmm, new CloudletSchedulerTimeShared());
+			//for creating a VM with a space shared scheduling policy for cloudlets:
+			//vm[i] = Vm(i, userId, mips, pesNumber, ram, bw, size, priority, vmm, new CloudletSchedulerSpaceShared());
+
+			list.add(vm[i]);
+		}
+
+		return list;
 	}
 
 
@@ -145,21 +170,77 @@ public class RALBA {
 	}
 	
 	private static List<Cloudlet> createSyntheticCloudlet(int userId){
-		List<Cloudlet> cls = createCloudletAdvance(userId, 20, 1, 250);
-		cls.addAll(createCloudletAdvance(userId, 60, 800, 1200));
-		cls.addAll(createCloudletAdvance(userId, 5, 1800, 2500));
-		cls.addAll(createCloudletAdvance(userId, 10, 7000, 10000));
-		cls.addAll(createCloudletAdvance(userId, 5, 30000, 45000));
-		return cls;
+		
+		LinkedList<Integer> clc = new LinkedList<>();
+		int ll[] = {60, 5, 10, 5};
+		int lz[][] = {{800,1200}, {1800,2500}, {7000, 10000}, {30000, 45000}};
+		
+		for(int i = 0; i < ll.length; i++)
+		{
+			for(int j = 0; j < ll[i]; j++) {
+				int milow = lz[i][0];
+				int mihigh = lz[i][1];
+				clc.add(milow + (j * ( (mihigh - milow) / (ll[i] - 1) ) ));
+			}
+		}
+		
+		// Creates a container to store Cloudlets
+		LinkedList<Cloudlet> list = new LinkedList<Cloudlet>();
+
+		//cloudlet parameters
+		long fileSize = 300;
+		long outputSize = 300;
+		int pesNumber = 1;
+		UtilizationModel utilizationModel = new UtilizationModelFull();
+
+		Cloudlet[] cloudlet = new Cloudlet[clc.size()];
+
+		for(int i=0;i<clc.size();i++){
+			long length = clc.get(i);
+			cloudlet[i] = new Cloudlet(i, length, pesNumber, fileSize, outputSize, utilizationModel, utilizationModel, utilizationModel);
+			// setting the owner of these Cloudlets
+			cloudlet[i].setUserId(userId);
+			list.add(cloudlet[i]);
+		}
+
+		return list;
 	}
 	
 	private static List<Cloudlet> createGoogleCloudlet(int userId){
-		List<Cloudlet> cls = createCloudletAdvance(userId, 20, 15000, 55000);
-		cls.addAll(createCloudletAdvance(userId, 40, 59000, 99000));
-		cls.addAll(createCloudletAdvance(userId, 30, 101000, 135000));
-		cls.addAll(createCloudletAdvance(userId, 4, 150000, 337500));
-		cls.addAll(createCloudletAdvance(userId, 6, 525000, 900000));
-		return cls;
+		
+		LinkedList<Integer> clc = new LinkedList<>();
+		int ll[] = {20, 40, 30, 4, 6};
+		int lz[][] = {{15000, 55000}, {59000, 99000}, {101000, 135000}, {150000, 337500}, {525000, 900000}};
+		
+		for(int i = 0; i < ll.length; i++)
+		{
+			for(int j = 0; j < ll[i]; j++) {
+				int milow = lz[i][0];
+				int mihigh = lz[i][1];
+				clc.add(milow + (j * ( (mihigh - milow) / (ll[i] - 1) ) ));
+			}
+		}
+		
+		// Creates a container to store Cloudlets
+		LinkedList<Cloudlet> list = new LinkedList<Cloudlet>();
+
+		//cloudlet parameters
+		long fileSize = 300;
+		long outputSize = 300;
+		int pesNumber = 1;
+		UtilizationModel utilizationModel = new UtilizationModelFull();
+
+		Cloudlet[] cloudlet = new Cloudlet[clc.size()];
+
+		for(int i=0;i<clc.size();i++){
+			long length = clc.get(i);
+			cloudlet[i] = new Cloudlet(i, length, pesNumber, fileSize, outputSize, utilizationModel, utilizationModel, utilizationModel);
+			// setting the owner of these Cloudlets
+			cloudlet[i].setUserId(userId);
+			list.add(cloudlet[i]);
+		}
+
+		return list;
 	}
 	
 	private static HashMap<Integer, Double> getVmCrMap(List<Vm> vmlist) {
@@ -494,7 +575,7 @@ public class RALBA {
 			System.out.println(String.format("Throughput: %f", throughput));
 			System.out.println(String.format("ARUR: %f", arur));
 			
-			System.out.println(String.format("%f\t%f\t%f", makespan, throughput, arur));
+			System.out.println(String.format("%f\n%f\n%f", makespan, throughput, arur));
 			
 			
 			// CODE ENDS HERE
@@ -520,7 +601,7 @@ public class RALBA {
 		//    a Machine.
 		List<Pe> peList1 = new ArrayList<Pe>();
 
-		int mips = 1000;
+		int mips = 4000;
 
 		// 3. Create PEs and add these into the list.
 		//for a quad-core machine, a list of 4 PEs is required:
@@ -528,7 +609,7 @@ public class RALBA {
 		peList1.add(new Pe(1, new PeProvisionerSimple(mips)));
 		peList1.add(new Pe(2, new PeProvisionerSimple(mips)));
 		peList1.add(new Pe(3, new PeProvisionerSimple(mips)));
-
+		
 		//Another list, for a dual-core machine
 		List<Pe> peList2 = new ArrayList<Pe>();
 
@@ -536,11 +617,25 @@ public class RALBA {
 		peList2.add(new Pe(1, new PeProvisionerSimple(mips)));
 
 		//4. Create Hosts with its id and list of PEs and add them to the list of machines
-		int hostId=0;
-		int ram = 2048; //host memory (MB)
+		int hostId = 0;
+		int ram = 16384; //host memory (MB)
 		long storage = 1000000; //host storage
 		int bw = 10000;
-
+		
+		for(; hostId < 4; hostId++) {
+			hostList.add(
+    			new Host(
+    				hostId,
+    				new RamProvisionerSimple(ram),
+    				new BwProvisionerSimple(bw),
+    				storage,
+    				peList1,
+    				new VmSchedulerTimeShared(peList2)
+	    		)
+    		); // This is our first machine
+		}
+		
+		for(; hostId < 26; hostId++) {
 		hostList.add(
     			new Host(
     				hostId,
@@ -551,19 +646,7 @@ public class RALBA {
     				new VmSchedulerTimeShared(peList1)
     			)
     		); // This is our first machine
-
-		hostId++;
-
-		hostList.add(
-    			new Host(
-    				hostId,
-    				new RamProvisionerSimple(ram),
-    				new BwProvisionerSimple(bw),
-    				storage,
-    				peList2,
-    				new VmSchedulerTimeShared(peList2)
-    			)
-    		); // Second machine
+		}
 
 
 		//To create a host with a space-shared allocation policy for PEs to VMs:
